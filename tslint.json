@@ -1,6 +1,11 @@
 {
-  "extends": ["@lifeomic/typescript-tools/config/tslint"],
+  "extends": ["tslint-config-semistandard", "tslint-config-prettier"],
   "rules": {
+    "interface-name": false,
+    "object-literal-sort-keys": false,
+    "no-var-requires": true,
+    "ordered-imports": false,
+    "no-unused-variable": true,
     "quotemark": [true, "single", "avoid-escape"],
     "no-require-imports": true
   }
