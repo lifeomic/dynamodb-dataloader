@@ -1,0 +1,43 @@
+{
+  "name": "@lifeomic/gradual-feature-toggle-tools",
+  "version": "0.0.0",
+  "description": "A DataLoader that batches DynamoDB item lookups",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lifeomic/gradual-feature-toggle-tools.git"
+  },
+  "author": "Matt Lavin <matt.lavin@lifeomic.com>",
+  "license": "MIT",
+  "main": "./work/dist/src/",
+  "module": "./work/dist/es6/src/",
+  "jsnext:main": "./work/dist/esnext/src/",
+  "types": "./work/dist/src/index.d.ts",
+  "scripts": {
+    "compile-src-cjs": "tsc --declaration --declarationDir ./work/dist -p tsconfig-src-cjs.json",
+    "compile-src-es6": "tsc -p tsconfig-src-es6.json",
+    "compile-src-esnext": "tsc -p tsconfig-src-esnext.json",
+    "precompile-src": "rm -rf ./work/dist",
+    "compile-src": "yarn compile-src-cjs && yarn compile-src-es6 && yarn compile-src-esnext",
+    "lint": "tslint --format codeFrame --project tsconfig.json 'src/**/*.ts' 'test/**/*.ts'",
+    "pretest": "yarn lint",
+    "test": "jest",
+    "prebuild": "yarn test",
+    "build": "yarn compile-src"
+  },
+  "devDependencies": {
+    "@lifeomic/typescript-tools": "^3.1.1",
+    "@types/jest": "^24.0.0",
+    "@types/lodash": "^4.14.121",
+    "@types/node": "^10.0.7",
+    "jest": "^23.6.0",
+    "ts-jest": "^23.10.5",
+    "tslint": "^5.12.0",
+    "tslint-config-semistandard": "^7.0.0",
+    "typescript": "^3.2.2"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.406.0",
+    "dataloader": "^1.4.0",
+    "lodash": "^4.17.11"
+  }
+}

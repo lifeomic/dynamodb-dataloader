@@ -1,0 +1,7 @@
+{
+  "extends": ["@lifeomic/typescript-tools/config/tslint"],
+  "rules": {
+    "quotemark": [true, "single", "avoid-escape"],
+    "no-require-imports": true
+  }
+}
