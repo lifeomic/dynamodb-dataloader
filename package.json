@@ -12,6 +12,9 @@
   "module": "./work/dist/es6/src/",
   "jsnext:main": "./work/dist/esnext/src/",
   "types": "./work/dist/src/index.d.ts",
+  "engines": {
+    "node": ">= 8.0.0"
+  },
   "scripts": {
     "compile-src-cjs": "tsc --declaration --declarationDir ./work/dist -p tsconfig-src-cjs.json",
     "compile-src-es6": "tsc -p tsconfig-src-es6.json",
