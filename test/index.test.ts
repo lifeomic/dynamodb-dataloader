@@ -228,3 +228,41 @@ test('returns null for items that do not exist', async () => {
   expect(loadedItem1).toEqual(item1);
   expect(loadedItem2).toEqual(null);
 });
+
+test('Duplicate load requests for the same key are merged before the batch request', async () => {
+  const item1: Key = { id: { S: 'id1' } };
+
+  const client = createMockDynamoDBClient({
+    Responses: {
+      table1: [item1]
+    }
+  });
+
+  const loader = createDataLoader({ client });
+  const loading1 = loader.load({
+    table: 'table1',
+    key: item1
+  });
+  const loading2 = loader.load({
+    table: 'table1',
+    key: item1
+  });
+
+  const [loadedItem1, loadedItem2] = await Promise.all([loading1, loading2]);
+
+  expect(client.batchGetItem).toBeCalledTimes(1);
+  expect(client.batchGetItem).toBeCalledWith({
+    RequestItems: {
+      table1: {
+        Keys: [
+          {
+            id: { S: 'id1' }
+          }
+        ]
+      }
+    }
+  });
+
+  expect(loadedItem1).toEqual(item1);
+  expect(loadedItem2).toEqual(item1);
+});

@@ -6,7 +6,15 @@ import {
   KeysAndAttributes,
   BatchGetRequestMap
 } from 'aws-sdk/clients/dynamodb';
-import { groupBy, find, mapValues, map, isEmpty } from 'lodash';
+import {
+  groupBy,
+  find,
+  mapValues,
+  map,
+  isEmpty,
+  uniqWith,
+  isEqual
+} from 'lodash';
 
 export type Options = {
   readonly client: DynamoDB;
@@ -23,9 +31,13 @@ export function createDataLoader(options: Options) {
   const client = options.client;
   const loader = new DataLoader<ItemToGet, AttributeMap | null>(
     async (itemsToGet) => {
+      // DynamoDB does not allow duplicate keys in the batchGet requests
+      // do de-duplicate the keys before building the request
+      const uniqueKeys = uniqWith(itemsToGet, isEqual);
+
       // Groups the items together by table into the request format that
       // DynamoDB expects
-      const itemsByTable = groupBy(itemsToGet, 'table');
+      const itemsByTable = groupBy(uniqueKeys, 'table');
       const requestItems: BatchGetRequestMap = mapValues(
         itemsByTable,
         (itemsToGet: ItemToGet[]): KeysAndAttributes => {
