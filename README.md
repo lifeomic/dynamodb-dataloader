@@ -20,7 +20,7 @@ const client = new AWS.DyanmoDB();
 const loader = createDataLoader({ client });
 
 // Once per item fetch
-const loading1 = await loader.load({
+const item = await loader.load({
   table: 'your table name',
   key: { idAattribute: { S: 'some id' } }
 });
