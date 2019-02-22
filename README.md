@@ -8,7 +8,7 @@ A DataLoader that batches requests for DynamoDB. The DataLoader can fetch items
 from multiple tables at once so you should only need one instance per request.
 
 You should be able to replace your calls to `dynamoClient.get` with
-`loader.load` and automaticly swith your network calls from `GetItem` to
+`loader.load` and automaticly switch your network calls from `GetItem` to
 `BatchGetItem`.
 
 NOTE: Make sure you update your IAM policy to allow `dynamodb:BatchGetItem` if
