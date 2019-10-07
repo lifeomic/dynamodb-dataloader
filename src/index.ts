@@ -25,6 +25,8 @@ export type ItemToGet = {
   readonly key: Key;
 };
 
+const MAX_BATCH_SIZE = 100;
+
 export function createDataLoader(options: Options) {
   // Keep a local reference to the client so that it cannot be
   // changed by the caller after creating the data loader
@@ -75,7 +77,7 @@ export function createDataLoader(options: Options) {
 
         return null;
       });
-    }
+    }, { maxBatchSize: MAX_BATCH_SIZE }
   );
 
   return loader;

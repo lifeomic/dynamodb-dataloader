@@ -37,6 +37,36 @@ test('uses BatchGetItem to get items', async () => {
   expect(loadedItem2).toEqual(item2);
 });
 
+test('uses BatchGetItem to get items - 101 items', async () => {
+  const itemArray: Key[] = new Array(101);
+  itemArray.fill({ id: {S: 'id'} } );
+  const items = itemArray.map((x, y) => ( { id: { S: `id${y + 1}` } } ));
+
+  const client = createMockDynamoDBClient({
+    Responses: {
+      table1: items
+    }
+  });
+
+  const loader = createDataLoader({ client });
+  const loadings: Promise<DynamoDB.AttributeMap | null>[] = [];
+  for (const item of items) {
+    loadings.push(
+      loader.load({
+        table: 'table1',
+        key: item
+      })
+    );
+  }
+
+  const loadedItems = await Promise.all(loadings);
+
+  expect(client.batchGetItem).toBeCalledTimes(2);
+  for (const key in loadedItems) {
+    expect(loadedItems[key]).toEqual(items[key]);
+  }
+});
+
 test('supports multiple tables', async () => {
   const item1: Key = { id: { S: 'id1' } };
   const item2: Key = { id: { S: 'id2' } };
