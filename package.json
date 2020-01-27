@@ -28,7 +28,7 @@
     "build": "yarn compile-src"
   },
   "devDependencies": {
-    "@types/jest": "^24.0.0",
+    "@types/jest": "^25.1.0",
     "@types/lodash": "^4.14.121",
     "@types/node": "^8.10",
     "aws-sdk": "^2.406.0",
