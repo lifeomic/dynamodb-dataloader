@@ -3,17 +3,16 @@ import { DynamoDB } from 'aws-sdk';
 import {
   Key,
   AttributeMap,
-  KeysAndAttributes,
-  BatchGetRequestMap
+  BatchGetRequestMap,
 } from 'aws-sdk/clients/dynamodb';
 import {
+  chunk,
   groupBy,
   find,
   mapValues,
   map,
-  isEmpty,
   uniqWith,
-  isEqual
+  isEqual,
 } from 'lodash';
 
 export type Options = {
@@ -25,7 +24,7 @@ export type ItemToGet = {
   readonly key: Key;
 };
 
-const MAX_BATCH_SIZE = 100;
+const MAX_BATCH_SIZE = 500;
 
 export function createDataLoader(options: Options) {
   // Keep a local reference to the client so that it cannot be
@@ -37,47 +36,68 @@ export function createDataLoader(options: Options) {
       // do de-duplicate the keys before building the request
       const uniqueKeys = uniqWith(itemsToGet, isEqual);
 
-      // Groups the items together by table into the request format that
-      // DynamoDB expects
-      const itemsByTable = groupBy(uniqueKeys, 'table');
-      const requestItems: BatchGetRequestMap = mapValues(
-        itemsByTable,
-        (itemsToGet: ItemToGet[]): KeysAndAttributes => {
-          return { Keys: map(itemsToGet, 'key') };
-        }
-      );
+      // BatchGetItems accepts a max of 100 queries. So, we need to chunk our batches
+      // into 100-length chunks.
+      const requestBatches = chunk(uniqueKeys, 100).map((batch) => {
+        // Groups the items together by table into the request format that
+        // DynamoDB expects
+        const itemsByTable = groupBy(batch, 'table');
 
-      // Perform the batch lookup
-      const results = await client
-        .batchGetItem({ RequestItems: requestItems })
-        .promise();
-
-      // Map the results from DyanmoDB into an array of results in the same
-      // order as the requested items
-      return itemsToGet.map((itemToGet: ItemToGet) => {
-        if (results.Responses) {
-          const tableResults = results.Responses[itemToGet.table];
-
-          // Check if the item was found
-          if (tableResults) {
-            const itemResult = find(tableResults, itemToGet.key);
-            if (itemResult) return itemResult;
+        const requestItems: BatchGetRequestMap = mapValues(
+          itemsByTable,
+          (itemsToGet) => {
+            return { Keys: map(itemsToGet, 'key') };
           }
+        );
+
+        return requestItems;
+      });
+
+      // Perform the batch gets, collecting results as we go.
+      const responses: { table: string; item: AttributeMap }[] = [];
+      const unprocessedKeys: { table: string; key: Key }[] = [];
+      for (const batch of requestBatches) {
+        const res = await client
+          .batchGetItem({ RequestItems: batch })
+          .promise();
+
+        if (res.Responses) {
+          for (const [table, items] of Object.entries(res.Responses)) {
+            for (const item of items) {
+              responses.push({ table, item });
+            }
+          }
+        }
+
+        if (res.UnprocessedKeys) {
+          for (const [table, { Keys }] of Object.entries(res.UnprocessedKeys)) {
+            for (const key of Keys) {
+              unprocessedKeys.push({ table, key });
+            }
+          }
+        }
+      }
+
+      // Map the results from DynamoDB into an array of results in the same
+      // order as the requested items
+      return itemsToGet.map(({ table, key }) => {
+        // Check if the item was found
+        const result = find(responses, { table, item: key });
+        if (result) {
+          return result.item;
         }
 
         // If there are any unprocessed keys, treat them as failures that can
         // be retried
-        if (results.UnprocessedKeys && !isEmpty(results.UnprocessedKeys)) {
-          const tableResults = results.UnprocessedKeys[itemToGet.table];
-          if (tableResults) {
-            const itemResult = find(tableResults.Keys, itemToGet.key);
-            if (itemResult) return new Error('The item was not processed');
-          }
+        const unprocessed = find(unprocessedKeys, { table, key });
+        if (unprocessed) {
+          return new Error('The item was not processed');
         }
 
         return null;
       });
-    }, { maxBatchSize: MAX_BATCH_SIZE }
+    },
+    { maxBatchSize: MAX_BATCH_SIZE }
   );
 
   return loader;
